@@ -20,7 +20,14 @@ app.get("/", (req_: Request, res: Response) => {
   res.send('<h1 style="text-align: center;">Dairy Management System</h1>');
 });
 
-getAccessToken();
+app.post("/api/mpesa/callback", (req: Request, res: Response) => {
+  console.log("STK Callback:", JSON.stringify(req.body, null, 2));
+  const stk = req.body?.Body?.stkCallback;
+  if (stk) {
+    const { ResultCode, ResultDesc, CallbackMetadata } = stk;
+  }
+  res.status(200).send("OK");
+});
 
 app.post("/api/ussd", async (req: Request, res: Response) => {
   // Read the variables sent via POST from our API
@@ -61,7 +68,7 @@ app.post("/api/ussd", async (req: Request, res: Response) => {
           await initiateStkPush({
             amount: 1,
             phone,
-            accountReference: sessionId,
+            accountReference: "Dairy System",
             transactionDesc: `Registration for ID ${id}`,
           });
           response = `END Payment initiated. Enter your M-Pesa PIN to complete.`;
