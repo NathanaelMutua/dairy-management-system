@@ -1,0 +1,84 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// user model to hold all the different users in the system
+model User {
+  id         String   @id @default(uuid())
+  firstName  String   @map("first_name")
+  lastName   String   @map("last_name")
+  role       UserRole
+  nationalId Int      @unique @map("national_id")
+  registered Boolean  @default(false) @map("registration_status")
+  dateJoined DateTime @default(now()) @map("date_joined")
+  lastUpdate DateTime @updatedAt @map("last_updated")
+  isDeleted  Boolean  @default(false) @map("deleted_status")
+
+  milkCollections  MilkCollection[] @relation("FarmerMilkCollections")
+  clerkCollections MilkCollection[] @relation("ClerkMilkCollections")
+  payments         Payment[]
+
+  @@map("users")
+}
+
+enum UserRole {
+  FARMER
+  CLERK
+  ADMIN
+  CUSTOMER
+}
+
+// milk collection model for storing milk collection data
+model MilkCollection {
+  id          String   @id @default(uuid())
+  farmerId    String
+  clerkId     String?
+  amount      Decimal  @map("amount_in_litres") @db.Decimal(15, 2)
+  timeEntered DateTime @default(now()) @map("time_entered")
+  isDeleted   Boolean  @default(false) @map("deleted_status")
+
+  farmer User  @relation("FarmerMilkCollections", fields: [farmerId], references: [id])
+  clerk  User? @relation("ClerkMilkCollections", fields: [clerkId], references: [id])
+
+  @@map("collections")
+}
+
+// the payments model to hold different payments in the system as a single source of truth
+model Payment {
+  id        String           @id @default(uuid())
+  userId    String // either the farmer or the client
+  amount    Float
+  method    String //M-pesa, bank ...
+  status    String //pending..e.t.c
+  reference String? //M-pesa receipt
+  type      PaymentType
+  direction PaymentDirection
+  createdAt DateTime         @default(now())
+  isDeleted Boolean          @default(false) @map("deleted_status")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("payments")
+}
+
+enum PaymentType {
+  FARMER_PAYOUT
+  REGISTRATION_FEE
+  SERVICE_FEE
+}
+
+enum PaymentDirection {
+  INCOMING
+  OUTGOING
+}
